@@ -1,7 +1,8 @@
 from fastapi import FastAPI, Depends, HTTPException, Query, Request, Form
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from uuid import UUID
 
 from .db import get_db
@@ -143,3 +144,10 @@ def submit_job_from_form(
     # redirect to job detail
     from fastapi.responses import RedirectResponse
     return RedirectResponse(url=f"/jobs/{job.id}", status_code=303)
+
+@app.post("/admin/clear-jobs")
+def clear_jobs(db: Session = Depends(get_db)):
+    # Dev-only utility: wipe all jobs
+    db.execute(text("TRUNCATE TABLE jobs;"))
+    db.commit()
+    return RedirectResponse(url="/", status_code=303)

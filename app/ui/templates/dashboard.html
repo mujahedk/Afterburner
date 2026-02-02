@@ -32,6 +32,13 @@
       hx-target="#jobs-table"
       hx-include="#status,#type"
     >Apply</button>
+    <form
+    method="post"
+    action="/admin/clear-jobs"
+    onsubmit="return confirm('Clear all jobs? This cannot be undone.');"
+    >
+        <button class="btn" type="submit">Clear dashboard</button>
+    </form>
 
     <span class="muted">Auto-refresh: every 2s</span>
   </div>
