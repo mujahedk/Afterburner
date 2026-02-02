@@ -1,0 +1,56 @@
+{% extends "base.html" %} {% block title %}Afterburner — Submit{% endblock %} {%
+block content %}
+<form method="post" action="/submit" class="card" style="max-width: 780px">
+  <div style="font-weight: 700; font-size: 18px; margin-bottom: 10px">
+    Submit a job
+  </div>
+
+  <div class="filters">
+    <label class="muted">Type</label>
+    <select class="input" name="job_type" id="job_type" onchange="setExample()">
+      <option value="sleep">sleep</option>
+      <option value="fail_n_times">fail_n_times</option>
+    </select>
+
+    <label class="muted">Max attempts</label>
+    <input
+      class="input"
+      type="number"
+      name="max_attempts"
+      value="5"
+      min="1"
+      max="25"
+    />
+  </div>
+
+  <div class="muted" style="margin: 10px 0 6px">Payload (JSON)</div>
+  <textarea
+    class="input"
+    name="payload_json"
+    id="payload_json"
+    rows="10"
+    style="
+      width: 100%;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas;
+    "
+  >
+{{ examples.sleep }}
+    </textarea
+  >
+
+  <div style="margin-top: 12px">
+    <button class="btn" type="submit">Submit</button>
+  </div>
+</form>
+
+<script>
+  const examples = {
+    sleep: {{ examples.sleep | tojson }},
+    fail_n_times: {{ examples.fail_n_times | tojson }},
+  };
+  function setExample(){
+    const t = document.getElementById('job_type').value;
+    document.getElementById('payload_json').value = examples[t];
+  }
+</script>
+{% endblock %}

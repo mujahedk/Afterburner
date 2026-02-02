@@ -1,0 +1,47 @@
+services:
+  db:
+    image: postgres:16
+    container_name: afterburner-db
+    environment:
+      POSTGRES_USER: afterburner
+      POSTGRES_PASSWORD: afterburner
+      POSTGRES_DB: afterburner
+    ports:
+      - "5432:5432"
+    volumes:
+      - afterburner_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U afterburner -d afterburner"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  api:
+    build: .
+    container_name: afterburner-api
+    environment:
+      DATABASE_URL: postgresql+psycopg://afterburner:afterburner@db:5432/afterburner
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+  worker:
+    build: .
+    container_name: afterburner-worker
+    environment:
+      DATABASE_URL: postgresql+psycopg://afterburner:afterburner@db:5432/afterburner
+      WORKER_ID: worker-docker-1
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "alembic upgrade head &&
+             python3 -m app.worker"
+
+volumes:
+  afterburner_pgdata:

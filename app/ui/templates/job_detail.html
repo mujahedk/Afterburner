@@ -1,0 +1,49 @@
+{% extends "base.html" %} {% block title %}Afterburner — Job {{ job.id }}{%
+endblock %} {% block content %}
+<div
+  hx-get="/jobs/{{ job.id }}"
+  hx-trigger="every 1s"
+  hx-target="body"
+  hx-swap="outerHTML"
+></div>
+
+<div class="card" style="margin-bottom: 14px">
+  <div class="row" style="justify-content: space-between; align-items: center">
+    <div>
+      <div class="muted">Job</div>
+      <div style="font-weight: 700">{{ job.id }}</div>
+      <div class="muted">Type: <b>{{ job.type }}</b></div>
+    </div>
+    <div>
+      <span class="pill {{ job.status }}">{{ job.status }}</span>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top: 12px">
+    <div class="muted">
+      Attempts: <b>{{ job.attempts }}/{{ job.max_attempts }}</b>
+    </div>
+    <div class="muted">Run at: <b>{{ job.run_at }}</b></div>
+    <div class="muted">Locked by: <b>{{ job.locked_by or "-" }}</b></div>
+    <div class="muted">Locked until: <b>{{ job.locked_until or "-" }}</b></div>
+  </div>
+
+  {% if job.last_error %}
+  <div style="margin-top: 12px">
+    <div class="muted">Last error</div>
+    <pre>{{ job.last_error }}</pre>
+  </div>
+  {% endif %}
+</div>
+
+<div class="row">
+  <div style="flex: 1">
+    <div class="muted" style="margin-bottom: 8px">Payload</div>
+    <pre>{{ payload_pretty }}</pre>
+  </div>
+  <div style="flex: 1">
+    <div class="muted" style="margin-bottom: 8px">Result</div>
+    <pre>{{ result_pretty }}</pre>
+  </div>
+</div>
+{% endblock %}

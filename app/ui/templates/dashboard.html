@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Afterburner — Dashboard{% endblock %}
+
+{% block content %}
+  <div class="row" style="margin-bottom:14px;">
+    <div class="card"><div class="muted">Queued</div><div style="font-size:22px; font-weight:700;">{{ counts.queued }}</div></div>
+    <div class="card"><div class="muted">Running</div><div style="font-size:22px; font-weight:700;">{{ counts.running }}</div></div>
+    <div class="card"><div class="muted">Succeeded</div><div style="font-size:22px; font-weight:700;">{{ counts.succeeded }}</div></div>
+    <div class="card"><div class="muted">Dead</div><div style="font-size:22px; font-weight:700;">{{ counts.dead }}</div></div>
+  </div>
+
+  <div class="filters">
+    <label class="muted">Status</label>
+    <select class="input" id="status">
+      <option value="" {% if status=="" %}selected{% endif %}>All</option>
+      <option value="queued" {% if status=="queued" %}selected{% endif %}>queued</option>
+      <option value="running" {% if status=="running" %}selected{% endif %}>running</option>
+      <option value="succeeded" {% if status=="succeeded" %}selected{% endif %}>succeeded</option>
+      <option value="dead" {% if status=="dead" %}selected{% endif %}>dead</option>
+    </select>
+
+    <label class="muted">Type</label>
+    <select class="input" id="type">
+      <option value="" {% if type=="" %}selected{% endif %}>All</option>
+      {% for t in types %}
+        <option value="{{ t }}" {% if type==t %}selected{% endif %}>{{ t }}</option>
+      {% endfor %}
+    </select>
+
+    <button class="btn"
+      hx-get="/partials/jobs-table"
+      hx-target="#jobs-table"
+      hx-include="#status,#type"
+    >Apply</button>
+
+    <span class="muted">Auto-refresh: every 2s</span>
+  </div>
+
+  <div id="jobs-table"
+       hx-get="/partials/jobs-table"
+       hx-trigger="load, every 2s"
+       hx-target="#jobs-table"
+       hx-include="#status,#type">
+    {% include "jobs_table.html" %}
+  </div>
+{% endblock %}
