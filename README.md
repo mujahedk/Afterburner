@@ -274,13 +274,4 @@ MIT
 
 ```
 
----
-
-If you want, next I can:
-- tighten this for **resume bullet extraction**
-- write **3–4 quantified resume bullets**
-- help you add **screenshots** and a short **demo GIF**
-- review this README as if I were a recruiter
-
-Just tell me what you want to optimize for next.
 ```
