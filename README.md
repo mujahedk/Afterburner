@@ -271,7 +271,3 @@ Postgres must be running locally, and `DATABASE_URL` must be set.
 ## License
 
 MIT
-
-```
-
-```
