@@ -83,6 +83,7 @@ enqueue_job()
 | `succeeded` | Completed; `result` JSON is populated |
 | `dead` | Exhausted all attempts; `last_error` holds the final failure |
 
+![Afterburner Running Job](demo-photos/afterburner-running-job.png)
 ---
 
 ## Atomic Job Claiming
@@ -109,6 +110,7 @@ This is the at-least-once guarantee: every job runs at least once. Handlers shou
 
 See [`app/queue.py`](app/queue.py) → `claim_job()`.
 
+![Afterburner Sucessful Job](demo-photos/afterburner-sucessful-job.png)
 ---
 
 ## Retries with Exponential Backoff
@@ -181,6 +183,8 @@ With `max_attempts = 5`, this job will fail twice, retry with backoff, then succ
 - Job detail view showing payload, result, error, and lease state (live-polls every 2s)
 
 **Submit jobs:** http://localhost:8000/submit
+
+![Afterburner Submit Job](demo-photos/afterburner-submit-job.png)
 
 **Routes:**
 
