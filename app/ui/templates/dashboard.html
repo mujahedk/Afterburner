@@ -2,11 +2,14 @@
 {% block title %}Afterburner — Dashboard{% endblock %}
 
 {% block content %}
-  <div class="row" style="margin-bottom:14px;">
-    <div class="card"><div class="muted">Queued</div><div style="font-size:22px; font-weight:700;">{{ counts.queued }}</div></div>
-    <div class="card"><div class="muted">Running</div><div style="font-size:22px; font-weight:700;">{{ counts.running }}</div></div>
-    <div class="card"><div class="muted">Succeeded</div><div style="font-size:22px; font-weight:700;">{{ counts.succeeded }}</div></div>
-    <div class="card"><div class="muted">Dead</div><div style="font-size:22px; font-weight:700;">{{ counts.dead }}</div></div>
+  <div id="counts"
+       class="row"
+       style="margin-bottom:14px;"
+       hx-get="/partials/counts"
+       hx-trigger="every 2s"
+       hx-target="#counts"
+       hx-swap="innerHTML">
+    {% include "counts_partial.html" %}
   </div>
 
   <div class="filters">

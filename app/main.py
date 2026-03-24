@@ -1,3 +1,5 @@
+import json
+
 from fastapi import FastAPI, Depends, HTTPException, Query, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -9,24 +11,27 @@ from .db import get_db
 from .schemas import JobCreate, JobOut
 from .queue import enqueue_job, list_jobs, get_job
 
-import json
-
 app = FastAPI(title="Afterburner", version="0.1.0")
 
 templates = Jinja2Templates(directory="app/ui/templates")
+
+# Template filters for cleaner display in the dashboard
+templates.env.filters["short_id"] = lambda v: str(v)[:8]
+templates.env.filters["fmt_dt"] = lambda v: v.strftime("%Y-%m-%d %H:%M") if v else "—"
 
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
-# ---- API ----
 
+# ---------------------------------------------------------------------------
+# REST API
+# ---------------------------------------------------------------------------
 
 @app.post("/api/jobs", response_model=JobOut)
 def create_job(payload: JobCreate, db: Session = Depends(get_db)):
-    job = enqueue_job(db, payload.type, payload.payload, payload.max_attempts)
-    return job
+    return enqueue_job(db, payload.type, payload.payload, payload.max_attempts)
 
 
 @app.get("/api/jobs", response_model=list[JobOut])
@@ -46,7 +51,10 @@ def api_get_job(job_id: UUID, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Job not found")
     return job
 
-# ---- UI (minimal Day 1) ----
+
+# ---------------------------------------------------------------------------
+# Dashboard UI
+# ---------------------------------------------------------------------------
 
 @app.get("/", response_class=HTMLResponse)
 def dashboard(
@@ -55,17 +63,13 @@ def dashboard(
     status: str | None = None,
     type: str | None = None,
 ):
-    # KPI counts
     all_jobs = list_jobs(db, limit=500)
     counts = {"queued": 0, "running": 0, "succeeded": 0, "dead": 0}
     for j in all_jobs:
         if j.status in counts:
             counts[j.status] += 1
 
-    # initial table load
     jobs = list_jobs(db, limit=25, status=status, job_type=type)
-
-    # type options for filter dropdown
     types = sorted({j.type for j in all_jobs})
 
     return templates.TemplateResponse(
@@ -80,6 +84,20 @@ def dashboard(
         },
     )
 
+
+@app.get("/partials/counts", response_class=HTMLResponse)
+def counts_partial(request: Request, db: Session = Depends(get_db)):
+    all_jobs = list_jobs(db, limit=500)
+    counts = {"queued": 0, "running": 0, "succeeded": 0, "dead": 0}
+    for j in all_jobs:
+        if j.status in counts:
+            counts[j.status] += 1
+    return templates.TemplateResponse(
+        "counts_partial.html",
+        {"request": request, "counts": counts},
+    )
+
+
 @app.get("/partials/jobs-table", response_class=HTMLResponse)
 def jobs_table_partial(
     request: Request,
@@ -92,6 +110,7 @@ def jobs_table_partial(
         "jobs_table.html",
         {"request": request, "jobs": jobs},
     )
+
 
 @app.get("/jobs/{job_id}", response_class=HTMLResponse)
 def job_detail_page(job_id: UUID, request: Request, db: Session = Depends(get_db)):
@@ -114,9 +133,32 @@ def job_detail_page(job_id: UUID, request: Request, db: Session = Depends(get_db
         },
     )
 
+
+@app.get("/partials/job/{job_id}", response_class=HTMLResponse)
+def job_detail_partial(job_id: UUID, request: Request, db: Session = Depends(get_db)):
+    """Partial used by the job detail page to poll for live state updates."""
+    job = get_job(db, job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    def pretty(obj):
+        if obj is None:
+            return ""
+        return json.dumps(obj, indent=2, sort_keys=True)
+
+    return templates.TemplateResponse(
+        "job_detail_card.html",
+        {
+            "request": request,
+            "job": job,
+            "payload_pretty": pretty(job.payload),
+            "result_pretty": pretty(job.result),
+        },
+    )
+
+
 @app.get("/submit", response_class=HTMLResponse)
 def submit_page(request: Request):
-    # prefill examples
     examples = {
         "sleep": json.dumps({"duration_ms": 1500}, indent=2),
         "fail_n_times": json.dumps({"failures_before_success": 2}, indent=2),
@@ -125,6 +167,7 @@ def submit_page(request: Request):
         "submit.html",
         {"request": request, "examples": examples},
     )
+
 
 @app.post("/submit")
 def submit_job_from_form(
@@ -141,13 +184,11 @@ def submit_job_from_form(
         payload = {}
 
     job = enqueue_job(db, job_type, payload, max_attempts=max_attempts)
-    # redirect to job detail
-    from fastapi.responses import RedirectResponse
     return RedirectResponse(url=f"/jobs/{job.id}", status_code=303)
+
 
 @app.post("/admin/clear-jobs")
 def clear_jobs(db: Session = Depends(get_db)):
-    # Dev-only utility: wipe all jobs
     db.execute(text("TRUNCATE TABLE jobs;"))
     db.commit()
     return RedirectResponse(url="/", status_code=303)

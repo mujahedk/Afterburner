@@ -5,6 +5,7 @@ WORKDIR /app
 # system deps (optional but helps psycopg)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .

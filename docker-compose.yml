@@ -26,9 +26,17 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    # Only the API runs migrations. The worker waits for this service to be
+    # healthy before starting, which guarantees migrations are complete.
     command: >
       sh -c "alembic upgrade head &&
              uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/health || exit 1"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
 
   worker:
     build: .
@@ -37,11 +45,9 @@ services:
       DATABASE_URL: postgresql+psycopg://afterburner:afterburner@db:5432/afterburner
       WORKER_ID: worker-docker-1
     depends_on:
-      db:
+      api:
         condition: service_healthy
-    command: >
-      sh -c "alembic upgrade head &&
-             python3 -m app.worker"
+    command: python3 -m app.worker
 
 volumes:
   afterburner_pgdata:

@@ -1,0 +1,34 @@
+databases:
+  - name: afterburner-db
+    plan: free
+    databaseName: afterburner
+    user: afterburner
+
+services:
+  - type: web
+    name: afterburner-api
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: afterburner-db
+          property: connectionString
+      - key: PYTHON_VERSION
+        value: "3.12.0"
+
+  - type: worker
+    name: afterburner-worker
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m app.worker
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: afterburner-db
+          property: connectionString
+      - key: PYTHON_VERSION
+        value: "3.12.0"
+      - key: WORKER_ID
+        value: worker-render-1

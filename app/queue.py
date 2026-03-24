@@ -1,13 +1,7 @@
-import uuid
-
-from datetime import datetime, timezone, timedelta
+from datetime import timedelta
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-from .models import Job
-
-
-def utcnow():
-    return datetime.now(timezone.utc)
+from .models import Job, utcnow
 
 
 def enqueue_job(db: Session, job_type: str, payload: dict, max_attempts: int = 5) -> Job:
@@ -42,8 +36,12 @@ def get_job(db: Session, job_id):
 
 def claim_job(db: Session, worker_id: str, lease_seconds: int = 30) -> Job | None:
     """
-    Atomically claim one runnable job.
-    Uses FOR UPDATE SKIP LOCKED so multiple workers can safely run.
+    Atomically claim one runnable job using SELECT FOR UPDATE SKIP LOCKED.
+
+    The SKIP LOCKED clause means concurrent workers each get a different row —
+    no worker blocks another, and no job is double-processed. The lease
+    (locked_until) ensures a job becomes reclaimable if a worker crashes before
+    marking it succeeded or failed.
     """
     sql = text("""
         SELECT id
@@ -56,30 +54,26 @@ def claim_job(db: Session, worker_id: str, lease_seconds: int = 30) -> Job | Non
         LIMIT 1
     """)
 
-    # Must run in a transaction. SQLAlchemy's Session does this naturally.
     row = db.execute(sql).fetchone()
     if not row:
         return None
 
     job_id = row[0]
 
-    # Update that row to "running" with a lease
-    update_sql = text("""
-        UPDATE jobs
-        SET status = 'running',
-            locked_by = :locked_by,
-            locked_until = now() + (:lease_seconds || ' seconds')::interval,
-            updated_at = now()
-        WHERE id = :job_id
-        RETURNING id
-    """)
-    db.execute(update_sql, {"locked_by": worker_id,
-               "lease_seconds": lease_seconds, "job_id": job_id})
+    db.execute(
+        text("""
+            UPDATE jobs
+            SET status       = 'running',
+                locked_by    = :locked_by,
+                locked_until = now() + (:lease_seconds || ' seconds')::interval,
+                updated_at   = now()
+            WHERE id = :job_id
+        """),
+        {"locked_by": worker_id, "lease_seconds": lease_seconds, "job_id": job_id},
+    )
     db.commit()
 
-    # Load ORM object for convenience
-    job = db.get(Job, job_id)
-    return job
+    return db.get(Job, job_id)
 
 
 def mark_succeeded(db: Session, job_id, result: dict) -> None:
@@ -92,18 +86,13 @@ def mark_succeeded(db: Session, job_id, result: dict) -> None:
     job.locked_by = None
     job.locked_until = None
     job.updated_at = utcnow()
-
     db.commit()
 
-def backoff_seconds(attempts: int) -> int:
-    # attempts is the *new* attempts value after increment
-    if attempts <= 1:
-        return 2
-    if attempts == 2:
-        return 5
-    if attempts == 3:
-        return 15
-    return 30
+
+def exponential_backoff_seconds(attempts: int, cap: int = 300) -> int:
+    # True exponential: 2s, 4s, 8s, 16s, ... capped at cap seconds.
+    # `attempts` is the new attempt count after incrementing.
+    return min(2 ** attempts, cap)
 
 
 def mark_failed(db: Session, job_id, error: str) -> None:
@@ -122,8 +111,7 @@ def mark_failed(db: Session, job_id, error: str) -> None:
         db.commit()
         return
 
-    # retry
-    delay = backoff_seconds(job.attempts)
+    delay = exponential_backoff_seconds(job.attempts)
     job.status = "queued"
     job.run_at = utcnow() + timedelta(seconds=delay)
     db.commit()
