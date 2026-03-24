@@ -110,7 +110,7 @@ This is the at-least-once guarantee: every job runs at least once. Handlers shou
 
 See [`app/queue.py`](app/queue.py) → `claim_job()`.
 
-![Afterburner Sucessful Job](demo-photos/afterburner-sucessful-job.png)
+![Afterburner Sucessful Job](demo-photos/afterburner-successful-job.png)
 ---
 
 ## Retries with Exponential Backoff
@@ -132,7 +132,6 @@ Backoff schedule (capped at 300s):
 | 5 | 32 s |
 | 6+ | 64, 128, 256, 300 s |
 
-![Afterburner Failed Job](demo-photos/afterburner-failed-job.png)
 ---
 
 ## Dead-Letter Handling
@@ -149,6 +148,7 @@ curl -X POST http://localhost:8000/api/jobs \
 
 The job will attempt 3 times and then go dead.
 
+![Afterburner Failed Job](demo-photos/afterburner-failed-job.png)
 ---
 
 ## Demo Job Types
