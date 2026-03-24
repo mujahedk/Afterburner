@@ -8,7 +8,7 @@ The goal is to show how production job queues work — durable storage, atomic c
 
 ---
 ## Dashboard 
-![afterburner-empty-dashboard] (demo-photos/afterburner-empty-dashboard.png)
+![Afterburner Empty Dashboard](demo-photos/afterburner-empty-dashboard.png)
 ## Quick Start
 
 ```bash
@@ -130,7 +130,7 @@ Backoff schedule (capped at 300s):
 | 5 | 32 s |
 | 6+ | 64, 128, 256, 300 s |
 
-![afterburner-failed-job] (demo-photos/afterburner-failed-job.png)
+![Afterburner Failed Job](demo-photos/afterburner-failed-job.png)
 ---
 
 ## Dead-Letter Handling
