@@ -7,7 +7,8 @@ Jobs are rows in a Postgres table. A Python worker polls that table, atomically 
 The goal is to show how production job queues work — durable storage, atomic claiming, retries with exponential backoff, dead-letter handling, and operational visibility — without a message broker or external queue service.
 
 ---
-
+## Dashboard 
+![afterburner-empty-dashboard] (demo-photos/afterburner-empty-dashboard.png)
 ## Quick Start
 
 ```bash
@@ -129,6 +130,7 @@ Backoff schedule (capped at 300s):
 | 5 | 32 s |
 | 6+ | 64, 128, 256, 300 s |
 
+![afterburner-failed-job] (demo-photos/afterburner-failed-job.png)
 ---
 
 ## Dead-Letter Handling
