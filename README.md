@@ -301,8 +301,7 @@ Postgres row locking ensures each job is claimed by exactly one worker. No coord
 ## Docs
 
 - [`docs/architecture.md`](docs/architecture.md) — detailed architecture, table schema, lifecycle diagrams
-- [`docs/resume-alignment.md`](docs/resume-alignment.md) — maps every resume bullet to code proof, demo proof, and interview explanation
-- [`docs/demo-script.md`](docs/demo-script.md) — step-by-step live demo and interview walkthrough
+- [`docs/demo-script.md`](docs/demo-script.md) — step-by-step live demo
 
 ---
 
