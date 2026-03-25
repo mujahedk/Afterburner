@@ -7,8 +7,11 @@ Jobs are rows in a Postgres table. A Python worker polls that table, atomically 
 The goal is to show how production job queues work — durable storage, atomic claiming, retries with exponential backoff, dead-letter handling, and operational visibility — without a message broker or external queue service.
 
 ---
-## Dashboard 
+
+## Empry Dashboard
+
 ![Afterburner Empty Dashboard](demo-photos/afterburner-empty-dashboard.png)
+
 ## Quick Start
 
 ```bash
@@ -76,15 +79,14 @@ enqueue_job()
 
 **States:**
 
-| Status | Meaning |
-|---|---|
-| `queued` | Waiting to be claimed; eligible once `run_at <= now()` |
-| `running` | Held by a worker under a 30s lease (`locked_until`) |
-| `succeeded` | Completed; `result` JSON is populated |
-| `dead` | Exhausted all attempts; `last_error` holds the final failure |
+| Status      | Meaning                                                      |
+| ----------- | ------------------------------------------------------------ |
+| `queued`    | Waiting to be claimed; eligible once `run_at <= now()`       |
+| `running`   | Held by a worker under a 30s lease (`locked_until`)          |
+| `succeeded` | Completed; `result` JSON is populated                        |
+| `dead`      | Exhausted all attempts; `last_error` holds the final failure |
 
-![Afterburner Running Job](demo-photos/afterburner-running-job.png)
----
+## ![Afterburner Running Job](demo-photos/afterburner-running-job.png)
 
 ## Atomic Job Claiming
 
@@ -102,7 +104,7 @@ LIMIT 1;
 ```
 
 - `FOR UPDATE` locks the selected row
-- `SKIP LOCKED` means concurrent workers each get a *different* row — no blocking, no double-processing
+- `SKIP LOCKED` means concurrent workers each get a _different_ row — no blocking, no double-processing
 - Immediately after the SELECT, the worker writes `status=running` and `locked_until = now() + 30s`
 - If the worker crashes before finishing, the lease expires and any worker can reclaim the job
 
@@ -110,8 +112,7 @@ This is the at-least-once guarantee: every job runs at least once. Handlers shou
 
 See [`app/queue.py`](app/queue.py) → `claim_job()`.
 
-![Afterburner Sucessful Job](demo-photos/afterburner-successful-job.png)
----
+## ![Afterburner Sucessful Job](demo-photos/afterburner-successful-job.png)
 
 ## Retries with Exponential Backoff
 
@@ -123,14 +124,14 @@ When a job fails, `mark_failed()` in [`app/queue.py`](app/queue.py):
 
 Backoff schedule (capped at 300s):
 
-| After attempt | Wait before retry |
-|---|---|
-| 1 | 2 s |
-| 2 | 4 s |
-| 3 | 8 s |
-| 4 | 16 s |
-| 5 | 32 s |
-| 6+ | 64, 128, 256, 300 s |
+| After attempt | Wait before retry   |
+| ------------- | ------------------- |
+| 1             | 2 s                 |
+| 2             | 4 s                 |
+| 3             | 8 s                 |
+| 4             | 16 s                |
+| 5             | 32 s                |
+| 6+            | 64, 128, 256, 300 s |
 
 ---
 
@@ -148,8 +149,7 @@ curl -X POST http://localhost:8000/api/jobs \
 
 The job will attempt 3 times and then go dead.
 
-![Afterburner Failed Job](demo-photos/afterburner-failed-job.png)
----
+## ![Afterburner Failed Job](demo-photos/afterburner-failed-job.png)
 
 ## Demo Job Types
 
@@ -188,14 +188,14 @@ With `max_attempts = 5`, this job will fail twice, retry with backoff, then succ
 
 **Routes:**
 
-| Route | Description |
-|---|---|
-| `GET /` | Dashboard |
-| `GET /submit` | Job submission form |
-| `GET /jobs/{id}` | Job detail view |
-| `POST /api/jobs` | Create a job |
-| `GET /api/jobs` | List jobs |
-| `GET /api/jobs/{id}` | Get a job |
+| Route                | Description         |
+| -------------------- | ------------------- |
+| `GET /`              | Dashboard           |
+| `GET /submit`        | Job submission form |
+| `GET /jobs/{id}`     | Job detail view     |
+| `POST /api/jobs`     | Create a job        |
+| `GET /api/jobs`      | List jobs           |
+| `GET /api/jobs/{id}` | Get a job           |
 
 ---
 
@@ -229,6 +229,7 @@ python scripts/simulate_failures.py
 ```
 
 Scenarios:
+
 - 30 jobs that succeed immediately
 - 20 jobs that succeed after 1 retry
 - 30 jobs that succeed after 2 retries
@@ -273,23 +274,6 @@ python -m app.worker
 
 ---
 
-## Deployment
-
-This project uses two long-running processes (API + worker), so it is **not suitable for Vercel** (serverless functions time out and cannot run a polling loop).
-
-**Recommended: [Render.com](https://render.com)**
-
-Render supports web services, background workers, and managed Postgres on the free tier. A [`render.yaml`](render.yaml) is included for one-command deployment:
-
-1. Push the repo to GitHub
-2. Connect the repo to Render
-3. Render will detect `render.yaml` and provision all three resources (API, worker, Postgres) automatically
-4. Set `DATABASE_URL` on both services to the Render Postgres internal connection string
-
-**Other options:** Railway, Fly.io, or any VPS with Docker Compose.
-
----
-
 ## Scaling
 
 Multiple workers can run concurrently with zero configuration changes:
@@ -330,9 +314,3 @@ Postgres row locking ensures each job is claimed by exactly one worker. No coord
 - Scheduled / cron jobs (enqueue with future `run_at`)
 - WebSocket-based live updates instead of HTMX polling
 - Metrics endpoint (job throughput, failure rate, p99 latency)
-
----
-
-## License
-
-MIT
